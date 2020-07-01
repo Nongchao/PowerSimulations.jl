@@ -339,6 +339,24 @@ end
     psi_checkobjfun_test(op_problem, GAEVF)
 end
 
+@testset "Hydro DCPLossLess HydroEnergyReservoir with HydroDispatchReservoirCascade Formulations" begin
+    model = DeviceModel(HydroEnergyReservoir, HydroDispatchReservoirCascade)
+    c_sys5_hyd_cascade = build_system("c_sys5_hyd_cascade")
+
+    # Parameters Testing
+    op_problem =
+        OperationsProblem(TestOpProblem, DCPPowerModel, c_sys5_hyd_cascade; use_parameters = true)
+    construct_device!(op_problem, :Hydro, model)
+    moi_tests(op_problem, true, 144, 0, 48, 48, 48, false)
+    psi_checkobjfun_test(op_problem, GAEVF)
+
+    # No Parameters Testing
+    op_problem = OperationsProblem(TestOpProblem, DCPPowerModel, c_sys5_hyd_cascade)
+    construct_device!(op_problem, :Hydro, model)
+    moi_tests(op_problem, false, 144, 0, 48, 48, 48, false)
+    psi_checkobjfun_test(op_problem, GAEVF)
+end
+
 #=
 # All Hydro UC formulations are currently not supported
 @testset "Hydro DCPLossLess HydroEnergyReservoir with HydroCommitmentReservoirStorage Formulations" begin

@@ -48,6 +48,7 @@ export RenewableConstantPowerFactor
 export HydroDispatchRunOfRiver
 export HydroDispatchReservoirFlow
 export HydroDispatchReservoirStorage
+export HydroDispatchReservoirCascade
 # export HydroCommitmentRunOfRiver
 # export HydroCommitmentReservoirFlow
 # export HydroCommitmentReservoirStorage

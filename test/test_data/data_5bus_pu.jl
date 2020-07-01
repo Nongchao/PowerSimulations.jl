@@ -463,6 +463,47 @@ hydro_generators5(nodes5) = [
     ),
 ];
 
+hydro_generators5_cascade(nodes5) = [
+    HydroEnergyReservoir(
+        "HydroUnit1",
+        true,
+        nodes5[3],
+        0.0,
+        0.0,
+        18.1,
+        PrimeMovers.HY,
+        (min = 3.0, max = 18.1),
+        (min = -18.1, max = 18.1),
+        (up = 5.0, down = 5.0),
+        nothing,
+        TwoPartCost(15.0, 0.0),
+        0.0,
+        10.0,
+        2.0,
+        5.0,
+        nothing
+    ),
+    HydroEnergyReservoir(
+        "HydroUnit2",
+        true,
+        nodes5[3],
+        0.0,
+        0.0,
+        18.1,
+        PrimeMovers.HY,
+        (min = 3.0, max = 18.1),
+        (min = -18.1, max = 18.1),
+        (up = 5.0, down = 5.0),
+        nothing,
+        TwoPartCost(15.0, 0.0),
+        0.0,
+        10.0,
+        2.0,
+        5.0,
+        ["HydroUnit1"]
+    ),
+];
+
 battery5(nodes5) = [GenericBattery(
     name = "Bat",
     primemover = PrimeMovers.BA,

@@ -5,6 +5,7 @@ abstract type AbstractHydroReservoirFormulation <: AbstractHydroDispatchFormulat
 struct HydroDispatchRunOfRiver <: AbstractHydroDispatchFormulation end
 struct HydroDispatchReservoirFlow <: AbstractHydroReservoirFormulation end
 struct HydroDispatchReservoirStorage <: AbstractHydroReservoirFormulation end
+struct HydroDispatchReservoirCascade <: AbstractHydroReservoirFormulation end
 #=
 # Commenting out all Unit Commitment formulations as all Hydro UC
 # formulations are currently not supported
@@ -368,6 +369,64 @@ function energy_balance_constraint!(
             psi_container,
             get_initial_conditions(psi_container, key),
             constraint_infos,
+            constraint_name(ENERGY_CAPACITY, H),
+            (
+                variable_name(SPILLAGE, H),
+                variable_name(ACTIVE_POWER, H),
+                variable_name(ENERGY, H),
+            ),
+        )
+    end
+    return
+end
+
+function energy_balance_constraint!(
+    psi_container::PSIContainer,
+    devices::IS.FlattenIteratorWrapper{H},
+    model::DeviceModel{H, HydroDispatchReservoirCascade},
+    system_formulation::Type{<:PM.AbstractPowerModel},
+    feedforward::Union{Nothing, AbstractAffectFeedForward},
+) where {H <: PSY.HydroEnergyReservoir}
+    key = ICKey(EnergyLevel, H)
+    parameters = model_has_parameters(psi_container)
+    use_forecast_data = model_uses_forecasts(psi_container)
+
+    if !has_initial_conditions(psi_container.initial_conditions, key)
+        throw(IS.DataFormatError("Initial Conditions for $(H) Energy Constraints not in the model"))
+    end
+
+    forecast_label = "get_inflow"
+    constraint_infos = Vector{DeviceTimeSeriesConstraintInfo}(undef, length(devices))
+    upstream_data = Vector{Union{Nothing, Vector{String}}}(undef, length(devices))
+    for (ix, d) in enumerate(devices)
+        ts_vector = get_time_series(psi_container, d, forecast_label)
+        constraint_info =
+            DeviceTimeSeriesConstraintInfo(d, x -> PSY.get_rating(x), ts_vector)
+        add_device_services!(constraint_info.range, d, model)
+        constraint_infos[ix] = constraint_info
+        upstream_data[ix] = PSY.get_upstream(d)
+    end
+
+    if parameters
+        energy_balance_external_input_param(
+            psi_container,
+            get_initial_conditions(psi_container, key),
+            constraint_infos,
+            upstream_data,
+            constraint_name(ENERGY_CAPACITY, H),
+            (
+                variable_name(SPILLAGE, H),
+                variable_name(ACTIVE_POWER, H),
+                variable_name(ENERGY, H),
+            ),
+            UpdateRef{H}(INFLOW, forecast_label),
+        )
+    else
+        energy_balance_external_input(
+            psi_container,
+            get_initial_conditions(psi_container, key),
+            constraint_infos,
+            upstream_data,
             constraint_name(ENERGY_CAPACITY, H),
             (
                 variable_name(SPILLAGE, H),

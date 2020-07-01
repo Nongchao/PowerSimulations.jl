@@ -393,6 +393,87 @@ function build_c_sys5_hyd(; kwargs...)
     return c_sys5_hyd
 end
 
+function build_c_sys5_hyd_cascade(; kwargs...)
+    nodes = nodes5()
+    c_sys5_hyd_cascade = System(
+        nodes,
+        vcat(thermal_generators5(nodes), hydro_generators5_cascade(nodes)),
+        loads5(nodes),
+        branches5(nodes),
+        nothing,
+        100.0,
+        nothing,
+        nothing;
+        time_series_in_memory = get(kwargs, :time_series_in_memory, true),
+    )
+
+    if get(kwargs, :add_forecasts, true)
+        for t in 1:2
+            for (ix, l) in enumerate(get_components(PowerLoad, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    l,
+                    Deterministic("get_maxactivepower", load_timeseries_DA[t][ix]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroGen, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_rating", hydro_timeseries_DA[t][1]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_storage_capacity", hydro_timeseries_DA[t][1]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_inflow", hydro_timeseries_DA[t][1] .* 0.8),
+                )
+            end
+        end
+    end
+
+    if get(kwargs, :add_reserves, false)
+        reserve_hy = reserve5_hy(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[1],
+            get_components(HydroEnergyReservoir, c_sys5_hyd_cascade),
+        )
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[2],
+            [collect(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))[end]],
+        )
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[3],
+            get_components(HydroEnergyReservoir, c_sys5_hyd_cascade),
+        )
+        for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_hyd_cascade))
+            add_forecast!(c_sys5_hyd_cascade, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2,
+            (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_hyd_cascade))
+
+            add_forecast!(
+                c_sys5_hyd_cascade,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
+        end
+    end
+
+    return c_sys5_hyd_cascade
+end
+
 function build_c_sys5_bat(; kwargs...)
     time_series_in_memory = get(kwargs, :time_series_in_memory, true)
     nodes = nodes5()
@@ -991,6 +1072,8 @@ TEST_SYSTEMS = Dict(
         (description = "", build = build_c_sys5_hy_ed, time_series_in_memory = true),
     "c_sys5_hy_uc" =>
         (description = "", build = build_c_sys5_hy_uc, time_series_in_memory = true),
+    "c_sys5_hyd_cascade" =>
+        (description = "", build = build_c_sys5_hyd_cascade, time_series_in_memory = true),
     "c_sys5_hyd" =>
         (description = "", build = build_c_sys5_hyd, time_series_in_memory = true),
     "c_sys5_il" => (

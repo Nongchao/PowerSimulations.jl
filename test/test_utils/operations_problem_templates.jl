@@ -172,3 +172,11 @@ devices = Dict(:Generators => DeviceModel(ThermalStandard, ThermalDispatch, Semi
 
 template_ed= OperationsProblemTemplate(CopperPlatePowerModel, devices, branches, services)
 =#
+
+branches = Dict()
+services = Dict()
+devices = Dict(
+    :Hyd1 => DeviceModel(HydroEnergyReservoir, HydroDispatchReservoirCascade),
+    :Load => DeviceModel(PowerLoad, StaticPowerLoad),
+);
+template_hydro_cascade = OperationsProblemTemplate(CopperPlatePowerModel, devices, branches, services);
