@@ -165,7 +165,7 @@ function construct_device!(
     spillage_variables!(psi_container, devices)
 
     #Initial Conditions
-    storage_energy_init(psi_container.initial_conditions, devices)
+    storage_energy_init(psi_container, devices)
 
     #Constraints
     activepower_constraints!(psi_container, devices, model, S, get_feedforward(model))
@@ -263,6 +263,70 @@ function construct_device!(
     end
 
     nodal_expression!(psi_container, devices, S)
+
+    return
+end
+
+function construct_device!(
+    psi_container::PSIContainer,
+    sys::PSY.System,
+    model::DeviceModel{H, HydroDispatchReservoirCascade},
+    ::Type{S},
+) where {H <: PSY.HydroGen, S <: PM.AbstractActivePowerModel}
+    devices = get_available_components(H, sys)
+
+    if !validate_available_devices(H, devices)
+        return
+    end
+
+    #Variables
+    activepower_variables!(psi_container, devices)
+    energy_variables!(psi_container, devices)
+    spillage_variables!(psi_container, devices)
+
+    #Initial Conditions
+    storage_energy_init(psi_container, devices)
+
+    #Constraints
+    activepower_constraints!(psi_container, devices, model, S, get_feedforward(model))
+    energy_balance_constraint!(psi_container, devices, model, S, get_feedforward(model))
+    feedforward!(psi_container, devices, model, get_feedforward(model))
+
+    #Cost Function
+    cost_function(psi_container, devices, HydroDispatchReservoirCascade, S)
+
+    return
+end
+
+function construct_device!(
+    psi_container::PSIContainer,
+    sys::PSY.System,
+    model::DeviceModel{H, HydroDispatchReservoirCascade},
+    ::Type{S},
+) where {H <: PSY.HydroGen, S <: PM.AbstractPowerModel}
+    devices = get_available_components(H, sys)
+
+    if !validate_available_devices(H, devices)
+        return
+    end
+
+    #Variables
+    activepower_variables!(psi_container, devices)
+    energy_variables!(psi_container, devices)
+    spillage_variables!(psi_container, devices)
+    reactivepower_variables!(psi_container, devices)
+
+    #Initial Conditions
+    storage_energy_init(psi_container, devices)
+
+    #Constraints
+    activepower_constraints!(psi_container, devices, model, S, get_feedforward(model))
+    energy_balance_constraint!(psi_container, devices, model, S, get_feedforward(model))
+    feedforward!(psi_container, devices, model, get_feedforward(model))
+    reactivepower_constraints!(psi_container, devices, model, S, get_feedforward(model))
+
+    #Cost Function
+    cost_function(psi_container, devices, HydroDispatchReservoirCascade, S)
 
     return
 end

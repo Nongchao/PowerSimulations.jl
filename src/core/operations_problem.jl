@@ -207,6 +207,8 @@ get_services_ref(op_problem::OperationsProblem) = op_problem.template.services
 get_system(op_problem::OperationsProblem) = op_problem.sys
 get_psi_container(op_problem::OperationsProblem) = op_problem.psi_container
 get_base_power(op_problem::OperationsProblem) = op_problem.sys.basepower
+get_jump_model(op_problem::OperationsProblem) = get_jump_model(op_problem.psi_container)
+
 function reset!(op_problem::OperationsProblem)
     op_problem.psi_container =
         PSIContainer(op_problem.sys, op_problem.psi_container.settings, nothing)
@@ -313,7 +315,7 @@ function set_model!(
     name::Symbol,
     device_model::DeviceModel,
 ) where {D <: PSY.StaticInjection}
-    op_problem.template.devices[name] = device_model
+    set_model!(op_problem.template, name, device_model)
 end
 
 function set_model!(
@@ -330,9 +332,6 @@ function construct_device!(
     name::Symbol,
     device_model::DeviceModel,
 )
-    if haskey(op_problem.template.devices, name)
-        throw(IS.ConflictingInputsError("Device with model name $(name) already exists in the Opertaion Model"))
-    end
     set_model!(device_model.device_type, op_problem, name, device_model)
 
     construct_device!(
@@ -413,10 +412,6 @@ function _build!(
         @debug "Building $(branch_model.device_type) with $(branch_model.formulation) formulation"
         construct_device!(psi_container, sys, branch_model, transmission)
         @debug check_problem_size(psi_container)
-    end
-
-    if model_has_parameters(psi_container)
-        add_initial_condition_parameters!(psi_container)
     end
 
     @debug "Building Objective"

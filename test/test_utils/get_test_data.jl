@@ -224,8 +224,16 @@ function build_c_sys5_re(; kwargs...)
             reserve_re[2],
             [collect(get_components(RenewableDispatch, c_sys5_re))[end]],
         )
+        add_service!(c_sys5_re, reserve_re[3], get_components(RenewableDispatch, c_sys5_re))
         for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_re))
             add_forecast!(c_sys5_re, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2, serv in get_components(ReserveDemandCurve, c_sys5_re)
+            add_forecast!(
+                c_sys5_re,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
         end
     end
 
@@ -363,12 +371,107 @@ function build_c_sys5_hyd(; kwargs...)
             reserve_hy[2],
             [collect(get_components(HydroEnergyReservoir, c_sys5_hyd))[end]],
         )
+        add_service!(
+            c_sys5_hyd,
+            reserve_hy[3],
+            get_components(HydroEnergyReservoir, c_sys5_hyd),
+        )
         for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_hyd))
             add_forecast!(c_sys5_hyd, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2,
+            (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_hyd))
+
+            add_forecast!(
+                c_sys5_hyd,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
         end
     end
 
     return c_sys5_hyd
+end
+
+function build_c_sys5_hyd_cascade(; kwargs...)
+    nodes = nodes5()
+    c_sys5_hyd_cascade = System(
+        nodes,
+        vcat(thermal_generators5(nodes), hydro_generators5_cascade(nodes)),
+        loads5(nodes),
+        branches5(nodes),
+        nothing,
+        100.0,
+        nothing,
+        nothing;
+        time_series_in_memory = get(kwargs, :time_series_in_memory, true),
+    )
+
+    if get(kwargs, :add_forecasts, true)
+        for t in 1:2
+            for (ix, l) in enumerate(get_components(PowerLoad, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    l,
+                    Deterministic("get_maxactivepower", load_timeseries_DA[t][ix]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroGen, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_rating", hydro_timeseries_DA[t][1]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_storage_capacity", hydro_timeseries_DA[t][1]),
+                )
+            end
+            for (ix, h) in enumerate(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+                add_forecast!(
+                    c_sys5_hyd_cascade,
+                    h,
+                    Deterministic("get_inflow", hydro_timeseries_DA[t][1] .* 0.8),
+                )
+            end
+        end
+    end
+
+    if get(kwargs, :add_reserves, false)
+        reserve_hy = reserve5_hy(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[1],
+            get_components(HydroEnergyReservoir, c_sys5_hyd_cascade),
+        )
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[2],
+            [collect(get_components(HydroEnergyReservoir, c_sys5_hyd_cascade))[end]],
+        )
+        add_service!(
+            c_sys5_hyd_cascade,
+            reserve_hy[3],
+            get_components(HydroEnergyReservoir, c_sys5_hyd_cascade),
+        )
+        for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_hyd_cascade))
+            add_forecast!(c_sys5_hyd_cascade, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2,
+            (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_hyd_cascade))
+
+            add_forecast!(
+                c_sys5_hyd_cascade,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
+        end
+    end
+
+    return c_sys5_hyd_cascade
 end
 
 function build_c_sys5_bat(; kwargs...)
@@ -405,8 +508,18 @@ function build_c_sys5_bat(; kwargs...)
         ))
         add_service!(c_sys5_bat, reserve_bat[1], get_components(GenericBattery, c_sys5_bat))
         add_service!(c_sys5_bat, reserve_bat[2], get_components(GenericBattery, c_sys5_bat))
+        add_service!(c_sys5_bat, reserve_bat[3], get_components(GenericBattery, c_sys5_bat))
         for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_bat))
             add_forecast!(c_sys5_bat, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2,
+            (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_bat))
+
+            add_forecast!(
+                c_sys5_bat,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
         end
     end
 
@@ -454,8 +567,16 @@ function build_c_sys5_il(; kwargs...)
             reserve_il[2],
             [collect(get_components(InterruptibleLoad, c_sys5_il))[end]],
         )
+        add_service!(c_sys5_il, reserve_il[3], get_components(InterruptibleLoad, c_sys5_il))
         for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_il))
             add_forecast!(c_sys5_il, serv, Deterministic("get_requirement", Reserve_ts[t]))
+        end
+        for t in 1:2, (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_il))
+            add_forecast!(
+                c_sys5_il,
+                serv,
+                PiecewiseFunction("get_variable", 10, ORDC_cost_ts[t]),
+            )
         end
     end
 
@@ -547,6 +668,7 @@ thermal_generators5_uc_testing(nodes) = [
         nothing,
         nothing,
         ThreePartCost((0.0, 1400.0), 0.0, 4.0, 2.0),
+        1.0,
     ),
     ThermalStandard(
         "Park City",
@@ -563,6 +685,7 @@ thermal_generators5_uc_testing(nodes) = [
         (up = 0.02, down = 0.02),
         nothing,
         ThreePartCost((0.0, 1500.0), 0.0, 1.5, 0.75),
+        1.0,
     ),
     ThermalStandard(
         "Solitude",
@@ -579,6 +702,7 @@ thermal_generators5_uc_testing(nodes) = [
         (up = 0.0012, down = 0.0012),
         (up = 5.0, down = 3.0),
         ThreePartCost((0.0, 3000.0), 0.0, 3.0, 1.5),
+        1.0,
     ),
     ThermalStandard(
         "Sundance",
@@ -595,6 +719,7 @@ thermal_generators5_uc_testing(nodes) = [
         (up = 0.015, down = 0.015),
         (up = 2.0, down = 1.0),
         ThreePartCost((0.0, 4000.0), 0.0, 4.0, 2.0),
+        1.0,
     ),
     ThermalStandard(
         "Brighton",
@@ -611,6 +736,7 @@ thermal_generators5_uc_testing(nodes) = [
         (up = 0.0015, down = 0.0015),
         (up = 5.0, down = 3.0),
         ThreePartCost((0.0, 1000.0), 0.0, 1.5, 0.75),
+        1.0,
     ),
 ];
 
@@ -663,9 +789,18 @@ function build_c_sys5_uc(; kwargs...)
             [collect(get_components(ThermalStandard, c_sys5_uc))[end]],
         )
         add_service!(c_sys5_uc, reserve_uc[3], get_components(ThermalStandard, c_sys5_uc))
+        add_service!(c_sys5_uc, reserve_uc[4], get_components(ThermalStandard, c_sys5_uc))
         for t in 1:2, (ix, serv) in enumerate(get_components(VariableReserve, c_sys5_uc))
             add_forecast!(c_sys5_uc, serv, Deterministic("get_requirement", Reserve_ts[t]))
         end
+        for t in 1:2, (ix, serv) in enumerate(get_components(ReserveDemandCurve, c_sys5_uc))
+            add_forecast!(
+                c_sys5_uc,
+                serv,
+                PiecewiseFunction("get_variable", 5, ORDC_cost_ts[t]),
+            )
+        end
+
     end
 
     return c_sys5_uc
@@ -937,6 +1072,8 @@ TEST_SYSTEMS = Dict(
         (description = "", build = build_c_sys5_hy_ed, time_series_in_memory = true),
     "c_sys5_hy_uc" =>
         (description = "", build = build_c_sys5_hy_uc, time_series_in_memory = true),
+    "c_sys5_hyd_cascade" =>
+        (description = "", build = build_c_sys5_hyd_cascade, time_series_in_memory = true),
     "c_sys5_hyd" =>
         (description = "", build = build_c_sys5_hyd, time_series_in_memory = true),
     "c_sys5_il" => (

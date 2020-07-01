@@ -43,7 +43,8 @@ const UNSET_INI_TIME = Dates.DateTime(0)
 # Tolerance of comparisons
 # MIP gap tolerances in most solvers are set to 1e-4
 const ABSOLUTE_TOLERANCE = 1.0e-3
-const SLACK_COST = 1e6
+const BALANCE_SLACK_COST = 1e6
+const SERVICES_SLACK_COST = 1e5
 const COST_EPSILON = 1e-3
 const MISSING_INITIAL_CONDITIONS_TIME_COUNT = 999.0
 const SECONDS_IN_MINUTE = 60.0
@@ -59,10 +60,11 @@ const OPERATIONS_ACCEPTED_KWARGS = [
     :use_parameters,
     :optimizer,
     :warm_start,
-    :slack_variables,
+    :balance_slack_variables,
+    :services_slack_variables,
     :system_to_file,
     :constraint_duals,
-    :export_pwl_variables,
+    :export_pwl_vars,
 ]
 
 const OPERATIONS_SOLVE_KWARGS = [:optimizer, :save_path]
@@ -70,10 +72,11 @@ const OPERATIONS_SOLVE_KWARGS = [:optimizer, :save_path]
 const STAGE_ACCEPTED_KWARGS = [
     :PTDF,
     :warm_start,
-    :slack_variables,
+    :balance_slack_variables,
+    :services_slack_variables,
     :constraint_duals,
     :system_to_file,
-    :export_pwl_variables,
+    :export_pwl_vars,
     :allow_fails,
 ]
 
@@ -81,6 +84,8 @@ const UNSUPPORTED_POWERMODELS =
     [PM.SOCBFPowerModel, PM.SOCBFConicPowerModel, PM.IVRPowerModel]
 
 const PSI_NAME_DELIMITER = "__"
+
+const M_VALUE = 1e6
 
 # The constants below are strings instead of enums because there is a requirement that users
 # should be able to define their own without changing PowerSimulations.

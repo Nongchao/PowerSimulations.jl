@@ -55,7 +55,7 @@ end
         template,
         c_sys5_re;
         optimizer = GLPK_optimizer,
-        slack_variables = true,
+        balance_slack_variables = true,
     )
     psi_checksolve_test(ED, [MOI.OPTIMAL], 240000.0, 10000)
 end
@@ -187,7 +187,7 @@ end
             TestOpProblem,
             template,
             system;
-            slack_variables = true,
+            balance_slack_variables = true,
             optimizer = ipopt_optimizer,
             PTDF = build_PTDF5(),
         )
@@ -366,7 +366,7 @@ function test_write_functions(file_path, op_problem, res)
             multiplier = hcat(multiplier, PSY.get_activepower(devices[d]))
         end
         extracted = -multiplier .* params
-        @test IS.get_base_power(res) .* extracted == res.parameter_values[:P_PowerLoad]
+        @test extracted == res.parameter_values[:P_PowerLoad]
     end
 
     @testset "Set optimizer at solve call" begin

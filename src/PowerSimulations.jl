@@ -23,6 +23,7 @@ export FixedOutput
 ######## Service Models ########
 export ServiceModel
 export RangeReserve
+export StepwiseCostReserve
 export PIDSmoothACE
 ######## Branch Models ########
 export StaticLine
@@ -47,6 +48,7 @@ export RenewableConstantPowerFactor
 export HydroDispatchRunOfRiver
 export HydroDispatchReservoirFlow
 export HydroDispatchReservoirStorage
+export HydroDispatchReservoirCascade
 # export HydroCommitmentRunOfRiver
 # export HydroCommitmentReservoirFlow
 # export HydroCommitmentReservoirStorage
@@ -113,6 +115,7 @@ export set_services_template!
 export set_device_model!
 export set_branch_model!
 export set_device_model!
+export set_model!
 ## Sim Model Exports
 export build!
 export execute!
@@ -268,10 +271,10 @@ include("core/cache.jl")
 include("core/initial_condition_types.jl")
 include("core/initial_condition.jl")
 include("core/initial_conditions.jl")
-include("core/update_initial_conditions.jl")
 include("core/operations_problem_template.jl")
 include("core/psi_settings.jl")
 include("core/psi_container.jl")
+include("core/update_initial_conditions.jl")
 include("core/operations_problem_results.jl")
 include("core/operations_problem.jl")
 include("core/simulation_stages.jl")
@@ -281,9 +284,12 @@ include("devices_models/devices/common.jl")
 include("core/feedforward.jl")
 include("core/simulation_results.jl")
 include("core/recorder_events.jl")
-include("devices_models/devices/common/nodal_expression.jl")
 
 #Device Modeling components
+include("devices_models/devices/common/device_range_constraints.jl")
+include("devices_models/devices/common/activepower_constraints.jl")
+include("devices_models/devices/common/reactivepower_constraints.jl")
+include("devices_models/devices/common/nodal_expression.jl")
 include("devices_models/devices/renewable_generation.jl")
 include("devices_models/devices/thermal_generation.jl")
 include("devices_models/devices/electric_loads.jl")
@@ -296,6 +302,7 @@ include("devices_models/devices/regulation_device.jl")
 #Services Models
 include("services_models/agc.jl")
 include("services_models/reserves.jl")
+include("services_models/service_slacks.jl")
 include("services_models/services_constructor.jl")
 
 #Network models

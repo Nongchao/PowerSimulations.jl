@@ -314,6 +314,7 @@ thermal_generators5(nodes5) = [
         nothing,
         nothing,
         ThreePartCost((0.0, 1400.0), 0.0, 4.0, 2.0),
+        1.0,
     ),
     ThermalStandard(
         "Park City",
@@ -330,6 +331,7 @@ thermal_generators5(nodes5) = [
         (up = 0.02, down = 0.02),
         (up = 2.0, down = 1.0),
         ThreePartCost((0.0, 1500.0), 0.0, 1.5, 0.75),
+        1.0,
     ),
     ThermalStandard(
         "Solitude",
@@ -346,6 +348,7 @@ thermal_generators5(nodes5) = [
         (up = 0.012, down = 0.012),
         (up = 3.0, down = 2.0),
         ThreePartCost((0.0, 3000.0), 0.0, 3.0, 1.5),
+        1.0,
     ),
     ThermalStandard(
         "Sundance",
@@ -362,6 +365,7 @@ thermal_generators5(nodes5) = [
         (up = 0.015, down = 0.015),
         (up = 2.0, down = 1.0),
         ThreePartCost((0.0, 4000.0), 0.0, 4.0, 2.0),
+        1.0,
     ),
     ThermalStandard(
         "Brighton",
@@ -378,6 +382,7 @@ thermal_generators5(nodes5) = [
         (up = 0.015, down = 0.015),
         (up = 5.0, down = 3.0),
         ThreePartCost((0.0, 1000.0), 0.0, 1.5, 0.75),
+        1.0,
     ),
 ];
 
@@ -393,6 +398,7 @@ renewable_generators5(nodes5) = [
         (min = 0.0, max = 0.0),
         1.0,
         TwoPartCost(22.0, 0.0),
+        1.0,
     ),
     RenewableDispatch(
         "WindBusB",
@@ -405,6 +411,7 @@ renewable_generators5(nodes5) = [
         (min = 0.0, max = 0.0),
         1.0,
         TwoPartCost(22.0, 0.0),
+        1.0,
     ),
     RenewableDispatch(
         "WindBusC",
@@ -417,6 +424,7 @@ renewable_generators5(nodes5) = [
         (min = -0.800, max = 0.800),
         1.0,
         TwoPartCost(22.0, 0.0),
+        1.0,
     ),
 ];
 
@@ -433,6 +441,7 @@ hydro_generators5(nodes5) = [
         (min = 0.0, max = 60.0),
         nothing,
         nothing,
+        1.0,
     ),
     HydroEnergyReservoir(
         "HydroEnergyReservoir",
@@ -448,8 +457,50 @@ hydro_generators5(nodes5) = [
         nothing,
         TwoPartCost(15.0, 0.0),
         1.0,
+        1.0,
         0.2,
         0.5,
+    ),
+];
+
+hydro_generators5_cascade(nodes5) = [
+    HydroEnergyReservoir(
+        "HydroUnit1",
+        true,
+        nodes5[3],
+        0.0,
+        0.0,
+        18.1,
+        PrimeMovers.HY,
+        (min = 3.0, max = 18.1),
+        (min = -18.1, max = 18.1),
+        (up = 5.0, down = 5.0),
+        nothing,
+        TwoPartCost(15.0, 0.0),
+        0.0,
+        10.0,
+        2.0,
+        5.0,
+        nothing
+    ),
+    HydroEnergyReservoir(
+        "HydroUnit2",
+        true,
+        nodes5[3],
+        0.0,
+        0.0,
+        18.1,
+        PrimeMovers.HY,
+        (min = 3.0, max = 18.1),
+        (min = -18.1, max = 18.1),
+        (up = 5.0, down = 5.0),
+        nothing,
+        TwoPartCost(15.0, 0.0),
+        0.0,
+        10.0,
+        2.0,
+        5.0,
+        ["HydroUnit1"]
     ),
 ];
 
@@ -461,6 +512,7 @@ battery5(nodes5) = [GenericBattery(
     energy = 5.0,
     capacity = (min = 5.0, max = 100.0),
     rating = 70,
+    basepower = 1.0,
     activepower = 10.0,
     inputactivepowerlimits = (min = 0.0, max = 50.0),
     outputactivepowerlimits = (min = 0.0, max = 50.0),
@@ -568,6 +620,9 @@ interruptible(nodes5) = [InterruptibleLoad(
     TwoPartCost(150.0, 2400.0),
 )]
 
+ORDC_cost =
+    TwoPartCost([(9000.0, 0.0), (6000.0, 0.2), (500.0, 0.4), (10.0, 0.6), (0.0, 0.8)], 0.0)
+
 reserve5(thermal_generators5) = [
     VariableReserve{ReserveUp}(
         "Reserve1",
@@ -587,20 +642,39 @@ reserve5(thermal_generators5) = [
         0.8,
         maximum([gen.activepowerlimits[:max] for gen in thermal_generators5]) .* 0.001,
     ),
+    ReserveDemandCurve{ReserveUp}("ORDC1", true, 0.6, ORDC_cost),
 ]
 
 reserve5_re(renewable_generators5) = [
     VariableReserve{ReserveUp}("Reserve3", true, 30, 100),
     VariableReserve{ReserveDown}("Reserve4", true, 5, 50),
+    ReserveDemandCurve{ReserveUp}("ORDC2", true, 0.6, ORDC_cost),
 ]
 reserve5_hy(hydro_generators5) = [
     VariableReserve{ReserveUp}("Reserve5", true, 30, 100),
     VariableReserve{ReserveDown}("Reserve6", true, 5, 50),
+    ReserveDemandCurve{ReserveUp}("ORDC3", true, 0.6, ORDC_cost),
 ]
 
 reserve5_il(interruptible_loads) = [
     VariableReserve{ReserveUp}("Reserve7", true, 30, 100),
     VariableReserve{ReserveDown}("Reserve8", true, 5, 50),
+    ReserveDemandCurve{ReserveUp}("ORDC3", true, 0.6, ORDC_cost),
+]
+
+function make_ordc_cost(cost::TwoPartCost)
+    var_cost = PSY.get_cost(PSY.get_variable(cost))
+    flatten_array = Array(collect(Iterators.flatten(var_cost))')
+    name = collect(Iterators.flatten([
+        (Symbol("cost_bp$(ix)"), Symbol("load_bp$ix")) for ix in 1:length(var_cost)
+    ]))
+    return flatten_array, name
+end
+
+data_array, col_names = make_ordc_cost(ORDC_cost)
+ORDC_cost_ts = [
+    TimeArray(DayAhead, repeat(data_array, 24), col_names),
+    TimeArray(DayAhead + Day(1), repeat(data_array, 24), col_names),
 ]
 
 Reserve_ts = [TimeArray(DayAhead, rand(24)), TimeArray(DayAhead + Day(1), rand(24))]
